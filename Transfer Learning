@@ -1,0 +1,40 @@
+base_model = tf.keras.applications.ResNet152V2(
+    weights='imagenet',
+    input_shape=(IMG_SIZE, IMG_SIZE, 3),
+    include_top=False)
+
+base_model.trainable = False
+
+def get_pretrained():
+    
+    #Input shape = [width, height, color channels]
+    inputs = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
+    
+    x = base_model(inputs)
+
+    # Head
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(128, activation='relu')(x)
+    x = layers.Dropout(0.1)(x)
+    
+    #Final Layer (Output)
+    output = layers.Dense(1, activation='sigmoid')(x)
+    
+    model = keras.Model(inputs=[inputs], outputs=output)
+    
+    return model
+
+keras.backend.clear_session()
+
+model_pretrained = get_pretrained()
+model_pretrained.compile(loss='binary_crossentropy'
+              , optimizer = keras.optimizers.Adam(learning_rate=5e-5), metrics='binary_accuracy')
+
+model_pretrained.summary()
+
+history = model_pretrained.fit(ds_train,
+          batch_size = BATCH, epochs = 50,
+          validation_data=ds_val,
+          callbacks=[early_stopping, plateau],
+          steps_per_epoch=(len(train_df)/BATCH),
+          validation_steps=(len(val_df)/BATCH));
